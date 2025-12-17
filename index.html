@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="th" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เรียนรู้ภาษาจีน - สีและตัวเลข</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&amp;family=Sarabun:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      font-family: 'Sarabun', 'Noto Sans SC', sans-serif;
+    }
+    
+    .chinese-text {
+      font-family: 'Noto Sans SC', sans-serif;
+    }
+    
+    .card-container {
+      perspective: 1000px;
+    }
+    
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    
+    .card-flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+    
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    
+    .card-back {
+      transform: rotateY(180deg);
+    }
+    
+    .card-matched {
+      animation: matchPulse 0.5s ease-out;
+    }
+    
+    @keyframes matchPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .match-info {
+      animation: fadeIn 0.4s ease-out;
+    }
+    
+    .confetti {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    @keyframes confettiFall {
+      0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100%) rotate(720deg); opacity: 0; }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full overflow-auto">
+  <div id="app" class="min-h-full w-full bg-gradient-to-br from-rose-50 via-amber-50 to-emerald-50 p-4 md:p-6"><!-- Header -->
+   <header class="text-center mb-6">
+    <h1 id="main-title" class="text-3xl md:text-4xl font-bold text-rose-600 mb-2 chinese-text">🐴 เรียนรู้ภาษาจีน 🐴</h1>
+    <h2 id="subtitle" class="text-xl md:text-2xl text-amber-600 font-semibold">สีและตัวเลข 颜色和数字</h2>
+    <p class="text-gray-600 mt-2">จับคู่ตัวอักษรจีนกับความหมาย</p>
+   </header><!-- Game Mode Selection -->
+   <div id="mode-selection" class="max-w-2xl mx-auto mb-6">
+    <div class="flex flex-wrap justify-center gap-3"><button onclick="startGame('colors')" class="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"> 🎨 เล่นเกมสี </button> <button onclick="startGame('numbers')" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"> 🔢 เล่นเกมตัวเลข </button> <button onclick="startGame('mixed')" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"> 🌟 เล่นทั้งหมด </button>
+    </div>
+   </div><!-- Score Board -->
+   <div id="scoreboard" class="max-w-md mx-auto mb-6 bg-white/80 backdrop-blur rounded-2xl p-4 shadow-lg hidden">
+    <div class="flex justify-between items-center">
+     <div class="text-center">
+      <p class="text-gray-500 text-sm">คู่ที่จับได้</p>
+      <p id="matches" class="text-2xl font-bold text-emerald-600">0</p>
+     </div>
+     <div class="text-center">
+      <p class="text-gray-500 text-sm">จำนวนครั้ง</p>
+      <p id="attempts" class="text-2xl font-bold text-amber-600">0</p>
+     </div><button onclick="resetGame()" class="px-4 py-2 bg-rose-100 text-rose-600 rounded-full font-semibold hover:bg-rose-200 transition-colors"> 🔄 เริ่มใหม่ </button>
+    </div>
+   </div><!-- Match Info Display -->
+   <div id="match-info" class="max-w-md mx-auto mb-6 hidden">
+    <div class="match-info bg-gradient-to-r from-emerald-400 to-teal-400 text-white rounded-2xl p-4 shadow-lg text-center">
+     <p class="text-lg">🎉 จับคู่สำเร็จ!</p>
+     <p id="match-chinese" class="text-3xl font-bold chinese-text mt-2"></p>
+     <p id="match-pinyin" class="text-xl mt-1"></p>
+     <p id="match-meaning" class="text-lg mt-1"></p>
+    </div>
+   </div><!-- Game Board -->
+   <div id="game-board" class="max-w-4xl mx-auto grid gap-3 md:gap-4" style="display: none;">
+   </div><!-- Completion Message -->
+   <div id="completion" class="hidden text-center py-8">
+    <div class="bg-white/90 backdrop-blur rounded-3xl p-8 max-w-md mx-auto shadow-2xl">
+     <div class="text-6xl mb-4">
+      🎊
+     </div>
+     <h3 class="text-2xl font-bold text-emerald-600 mb-2">ยินดีด้วย!</h3>
+     <p class="text-gray-600 mb-4">คุณจับคู่สำเร็จทั้งหมดแล้ว</p>
+     <p id="final-score" class="text-lg text-amber-600 font-semibold mb-4"></p><button onclick="resetGame()" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"> 🔄 เล่นอีกครั้ง </button>
+    </div>
+   </div><!-- Learning Reference -->
+   <div id="reference" class="max-w-4xl mx-auto mt-8 bg-white/80 backdrop-blur rounded-2xl p-6 shadow-lg">
+    <h3 class="text-xl font-bold text-gray-700 mb-4 text-center">📚 คำศัพท์ทั้งหมด</h3>
+    <div class="grid md:grid-cols-2 gap-6"><!-- Colors -->
+     <div>
+      <h4 class="font-semibold text-rose-600 mb-3 flex items-center gap-2"><span class="text-2xl">🎨</span> สี (颜色 yánsè)</h4>
+      <div class="space-y-2">
+       <div class="flex items-center gap-3 p-2 bg-orange-50 rounded-lg">
+        <div class="w-8 h-8 rounded-full bg-orange-500"></div><span class="chinese-text font-bold text-lg">橙色</span> <span class="text-gray-600">chéngsè</span> <span class="text-gray-500">สีส้ม</span>
+       </div>
+       <div class="flex items-center gap-3 p-2 bg-purple-50 rounded-lg">
+        <div class="w-8 h-8 rounded-full bg-purple-500"></div><span class="chinese-text font-bold text-lg">紫色</span> <span class="text-gray-600">zǐsè</span> <span class="text-gray-500">สีม่วง</span>
+       </div>
+       <div class="flex items-center gap-3 p-2 bg-red-50 rounded-lg">
+        <div class="w-8 h-8 rounded-full bg-red-500"></div><span class="chinese-text font-bold text-lg">红色</span> <span class="text-gray-600">hóngsè</span> <span class="text-gray-500">สีแดง</span>
+       </div>
+       <div class="flex items-center gap-3 p-2 bg-yellow-50 rounded-lg">
+        <div class="w-8 h-8 rounded-full bg-yellow-400"></div><span class="chinese-text font-bold text-lg">黄色</span> <span class="text-gray-600">huángsè</span> <span class="text-gray-500">สีเหลือง</span>
+       </div>
+       <div class="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
+        <div class="w-8 h-8 rounded-full bg-green-500"></div><span class="chinese-text font-bold text-lg">绿色</span> <span class="text-gray-600">lǜsè</span> <span class="text-gray-500">สีเขียว</span>
+       </div>
+      </div>
+     </div><!-- Numbers -->
+     <div>
+      <h4 class="font-semibold text-amber-600 mb-3 flex items-center gap-2"><span class="text-2xl">🔢</span> ตัวเลข (数字 shùzì)</h4>
+      <div class="grid grid-cols-2 gap-2">
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">1</span> <span class="chinese-text font-bold">一</span> <span class="text-gray-600 text-sm">yī</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">2</span> <span class="chinese-text font-bold">二</span> <span class="text-gray-600 text-sm">èr</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-orange-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-orange-500 text-white rounded-full font-bold">2</span> <span class="chinese-text font-bold">两</span> <span class="text-gray-600 text-sm">liǎng</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">3</span> <span class="chinese-text font-bold">三</span> <span class="text-gray-600 text-sm">sān</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">4</span> <span class="chinese-text font-bold">四</span> <span class="text-gray-600 text-sm">sì</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">5</span> <span class="chinese-text font-bold">五</span> <span class="text-gray-600 text-sm">wǔ</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">6</span> <span class="chinese-text font-bold">六</span> <span class="text-gray-600 text-sm">liù</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">7</span> <span class="chinese-text font-bold">七</span> <span class="text-gray-600 text-sm">qī</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">8</span> <span class="chinese-text font-bold">八</span> <span class="text-gray-600 text-sm">bā</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold">9</span> <span class="chinese-text font-bold">九</span> <span class="text-gray-600 text-sm">jiǔ</span>
+       </div>
+       <div class="flex items-center gap-2 p-2 bg-amber-50 rounded-lg"><span class="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-full font-bold text-xs">10</span> <span class="chinese-text font-bold">十</span> <span class="text-gray-600 text-sm">shí</span>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Data
+    const colors = [
+      { id: 'orange', chinese: '橙色', pinyin: 'chéngsè', meaning: 'สีส้ม', color: '#f97316', bgClass: 'bg-orange-500' },
+      { id: 'purple', chinese: '紫色', pinyin: 'zǐsè', meaning: 'สีม่วง', color: '#a855f7', bgClass: 'bg-purple-500' },
+      { id: 'red', chinese: '红色', pinyin: 'hóngsè', meaning: 'สีแดง', color: '#ef4444', bgClass: 'bg-red-500' },
+      { id: 'yellow', chinese: '黄色', pinyin: 'huángsè', meaning: 'สีเหลือง', color: '#facc15', bgClass: 'bg-yellow-400' },
+      { id: 'green', chinese: '绿色', pinyin: 'lǜsè', meaning: 'สีเขียว', color: '#22c55e', bgClass: 'bg-green-500' }
+    ];
+
+    const numbers = [
+      { id: 'num1', chinese: '一', pinyin: 'yī', meaning: '1 (อี)', value: 1 },
+      { id: 'num2', chinese: '二', pinyin: 'èr', meaning: '2 (เอ้อร์)', value: 2 },
+      { id: 'num2b', chinese: '两', pinyin: 'liǎng', meaning: '2 (เหลี่ยง)', value: 2 },
+      { id: 'num3', chinese: '三', pinyin: 'sān', meaning: '3 (ซาน)', value: 3 },
+      { id: 'num4', chinese: '四', pinyin: 'sì', meaning: '4 (ซื่อ)', value: 4 },
+      { id: 'num5', chinese: '五', pinyin: 'wǔ', meaning: '5 (อู่)', value: 5 },
+      { id: 'num6', chinese: '六', pinyin: 'liù', meaning: '6 (ลิ่ว)', value: 6 },
+      { id: 'num7', chinese: '七', pinyin: 'qī', meaning: '7 (ชี)', value: 7 },
+      { id: 'num8', chinese: '八', pinyin: 'bā', meaning: '8 (ปา)', value: 8 },
+      { id: 'num9', chinese: '九', pinyin: 'jiǔ', meaning: '9 (จิ่ว)', value: 9 },
+      { id: 'num10', chinese: '十', pinyin: 'shí', meaning: '10 (สือ)', value: 10 }
+    ];
+
+
+
+    // Game state
+    let cards = [];
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let attempts = 0;
+    let totalPairs = 0;
+    let isChecking = false;
+    let currentMode = '';
+
+    // Default config
+    const defaultConfig = {
+      main_title: '🐴 เรียนรู้ภาษาจีน 🐴',
+      subtitle: 'สีและตัวเลข 颜色和数字',
+      background_color: '#fff1f2',
+      card_color: '#ffffff',
+      text_color: '#374151',
+      primary_color: '#e11d48',
+      accent_color: '#f59e0b'
+    };
+
+    // Shuffle array
+    function shuffle(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    // Create card pairs
+    function createCardPairs(data, type) {
+      const pairs = [];
+      data.forEach(item => {
+        // Chinese character card
+        pairs.push({
+          id: item.id + '_chinese',
+          pairId: item.id,
+          type: 'chinese',
+          chinese: item.chinese,
+          pinyin: item.pinyin,
+          meaning: item.meaning,
+          color: item.color,
+          bgClass: item.bgClass,
+          value: item.value,
+          dataType: type
+        });
+        // Meaning card
+        pairs.push({
+          id: item.id + '_meaning',
+          pairId: item.id,
+          type: 'meaning',
+          chinese: item.chinese,
+          pinyin: item.pinyin,
+          meaning: item.meaning,
+          color: item.color,
+          bgClass: item.bgClass,
+          value: item.value,
+          dataType: type
+        });
+      });
+      return shuffle(pairs);
+    }
+
+    // Start game
+    function startGame(mode) {
+      currentMode = mode;
+      let data = [];
+      
+      if (mode === 'colors') {
+        data = colors;
+      } else if (mode === 'numbers') {
+        data = numbers;
+      } else {
+        data = [...colors, ...numbers];
+      }
+      
+      cards = createCardPairs(data, mode === 'numbers' ? 'number' : (mode === 'colors' ? 'color' : 'mixed'));
+      totalPairs = data.length;
+      matchedPairs = 0;
+      attempts = 0;
+      flippedCards = [];
+      isChecking = false;
+      
+      updateScore();
+      renderBoard();
+      
+      document.getElementById('scoreboard').classList.remove('hidden');
+      document.getElementById('game-board').style.display = 'grid';
+      document.getElementById('completion').classList.add('hidden');
+      document.getElementById('match-info').classList.add('hidden');
+      document.getElementById('reference').classList.add('hidden');
+    }
+
+    // Reset game
+    function resetGame() {
+      if (currentMode) {
+        startGame(currentMode);
+      }
+    }
+
+    // Render board
+    function renderBoard() {
+      const board = document.getElementById('game-board');
+      const cols = cards.length <= 10 ? 4 : (cards.length <= 16 ? 4 : 6);
+      board.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      
+      board.innerHTML = cards.map((card, index) => `
+        <div class="card-container aspect-square cursor-pointer" data-index="${index}" onclick="flipCard(${index})">
+          <div class="card-inner w-full h-full">
+            <div class="card-front bg-white shadow-lg border-2 ${getCardBorderColor(card)}">
+              ${renderCardContent(card)}
+            </div>
+            <div class="card-back bg-gradient-to-br from-emerald-400 to-teal-400 shadow-lg flex flex-col items-center justify-center p-2">
+              <span class="text-3xl md:text-4xl">✓</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getCardBorderColor(card) {
+      if (card.dataType === 'color' || (card.dataType === 'mixed' && card.color)) {
+        return 'border-gray-200';
+      }
+      return 'border-amber-300';
+    }
+
+    // Render card content (visible from start)
+    function renderCardContent(card) {
+      if (card.type === 'chinese') {
+        // Chinese character card - show Chinese text
+        if (card.color) {
+          // Color card - show Chinese color name
+          return `
+            <span class="text-4xl md:text-5xl chinese-text font-bold" style="color: ${card.color}">${card.chinese}</span>
+            <span class="text-sm text-gray-500 mt-1">${card.pinyin}</span>
+          `;
+        } else {
+          // Number card - show Chinese number
+          return `
+            <span class="text-4xl md:text-5xl chinese-text font-bold text-amber-600">${card.chinese}</span>
+            <span class="text-sm text-gray-500 mt-1">${card.pinyin}</span>
+          `;
+        }
+      } else {
+        // Meaning card - show visual representation
+        if (card.color) {
+          // Color card - show colored circle
+          return `
+            <div class="w-16 h-16 md:w-20 md:h-20 rounded-full shadow-inner" style="background-color: ${card.color}"></div>
+            <span class="text-sm md:text-base text-gray-600 mt-2">${card.meaning}</span>
+          `;
+        } else {
+          // Number card - show dots
+          return `
+            <div class="flex flex-wrap justify-center gap-1 max-w-20">
+              ${Array(card.value).fill('<div class="w-4 h-4 md:w-5 md:h-5 rounded-full bg-amber-500"></div>').join('')}
+            </div>
+            <span class="text-lg md:text-xl font-bold text-amber-600 mt-2">${card.value}</span>
+          `;
+        }
+      }
+    }
+
+    // Select card
+    function flipCard(index) {
+      if (isChecking) return;
+      
+      const cardEl = document.querySelector(`[data-index="${index}"]`);
+      const card = cards[index];
+      
+      if (cardEl.classList.contains('card-matched')) return;
+      if (flippedCards.length >= 2) return;
+      if (flippedCards.some(f => f.index === index)) return;
+      
+      // Highlight selected card
+      cardEl.classList.add('ring-4', 'ring-rose-400', 'ring-offset-2');
+      flippedCards.push({ index, card });
+      
+      if (flippedCards.length === 2) {
+        attempts++;
+        updateScore();
+        checkMatch();
+      }
+    }
+
+    // Check match
+    function checkMatch() {
+      isChecking = true;
+      const [first, second] = flippedCards;
+      
+      if (first.card.pairId === second.card.pairId && first.card.type !== second.card.type) {
+        // Match found!
+        setTimeout(() => {
+            
+        // 🔊 เล่นเสียงตอนจับคู่สำเร็จ
+          playMatchSound(first.card.pairId);
+
+          const firstEl = document.querySelector(`[data-index="${first.index}"]`);
+          const secondEl = document.querySelector(`[data-index="${second.index}"]`);
+          
+          // Remove selection highlight and add matched style
+          firstEl.classList.remove('ring-4', 'ring-rose-400', 'ring-offset-2');
+          secondEl.classList.remove('ring-4', 'ring-rose-400', 'ring-offset-2');
+          firstEl.classList.add('card-matched', 'card-flipped');
+          secondEl.classList.add('card-matched', 'card-flipped');
+          
+          // Show match info
+          showMatchInfo(first.card);
+          
+          matchedPairs++;
+          updateScore();
+          flippedCards = [];
+          isChecking = false;
+          
+          if (matchedPairs === totalPairs) {
+            setTimeout(showCompletion, 1500);
+          }
+        }, 600);
+      } else {
+        // No match
+        setTimeout(() => {
+          const firstEl = document.querySelector(`[data-index="${first.index}"]`);
+          const secondEl = document.querySelector(`[data-index="${second.index}"]`);
+          
+          // Remove selection highlight
+          firstEl.classList.remove('ring-4', 'ring-rose-400', 'ring-offset-2');
+          secondEl.classList.remove('ring-4', 'ring-rose-400', 'ring-offset-2');
+          
+          flippedCards = [];
+          isChecking = false;
+        }, 1000);
+      }
+    }
+
+    // Show match info
+    function showMatchInfo(card) {
+      const infoEl = document.getElementById('match-info');
+      document.getElementById('match-chinese').textContent = card.chinese;
+      document.getElementById('match-pinyin').textContent = card.pinyin;
+      document.getElementById('match-meaning').textContent = card.meaning;
+      
+      infoEl.classList.remove('hidden');
+      
+      setTimeout(() => {
+        infoEl.classList.add('hidden');
+      }, 2000);
+    }
+
+    // Update score
+    function updateScore() {
+      document.getElementById('matches').textContent = matchedPairs;
+      document.getElementById('attempts').textContent = attempts;
+    }
+
+    // Show completion
+    function showCompletion() {
+      document.getElementById('completion').classList.remove('hidden');
+      document.getElementById('final-score').textContent = `จับคู่ได้ ${matchedPairs} คู่ ใน ${attempts} ครั้ง`;
+      createConfetti();
+    }
+
+    // Create confetti effect
+    function createConfetti() {
+      const colors = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#a855f7', '#ec4899'];
+      for (let i = 0; i < 50; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + '%';
+          confetti.style.top = '-20px';
+          confetti.style.width = '10px';
+          confetti.style.height = '10px';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+          confetti.style.animation = `confettiFall ${2 + Math.random() * 2}s linear forwards`;
+          document.body.appendChild(confetti);
+          
+          setTimeout(() => confetti.remove(), 4000);
+        }, i * 50);
+      }
+    }
+
+    // Element SDK Integration
+    async function onConfigChange(config) {
+      const mainTitle = document.getElementById('main-title');
+      const subtitle = document.getElementById('subtitle');
+      
+      if (mainTitle) {
+        mainTitle.textContent = config.main_title || defaultConfig.main_title;
+        mainTitle.style.color = config.primary_color || defaultConfig.primary_color;
+      }
+      
+      if (subtitle) {
+        subtitle.textContent = config.subtitle || defaultConfig.subtitle;
+        subtitle.style.color = config.accent_color || defaultConfig.accent_color;
+      }
+    }
+
+    // Initialize Element SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.primary_color || defaultConfig.primary_color,
+              set: (value) => {
+                config.primary_color = value;
+                window.elementSdk.setConfig({ primary_color: value });
+              }
+            },
+            {
+              get: () => config.accent_color || defaultConfig.accent_color,
+              set: (value) => {
+                config.accent_color = value;
+                window.elementSdk.setConfig({ accent_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['main_title', config.main_title || defaultConfig.main_title],
+          ['subtitle', config.subtitle || defaultConfig.subtitle]
+        ])
+      });
+    }
+
+        /* =================== 🔊 MATCH SOUND =================== */
+
+    // เก็บเสียงตาม pairId
+    const matchSounds = {
+        orange: new Audio('sounds/orange.m4a'),
+        purple: new Audio('sounds/purple.m4a'),
+        red: new Audio('sounds/red.m4a'),
+        yellow: new Audio('sounds/yellow.m4a'),
+        green: new Audio('sounds/green.m4a'),
+
+        num1: new Audio('sounds/num1.m4a'),
+        num2: new Audio('sounds/num2.m4a'),
+        num2b: new Audio('sounds/num2b.m4a'),
+        num3: new Audio('sounds/num3.m4a'),
+        num4: new Audio('sounds/num4.m4a'),
+        num5: new Audio('sounds/num5.m4a'),
+        num6: new Audio('sounds/num6.m4a'),
+        num7: new Audio('sounds/num7.m4a'),
+        num8: new Audio('sounds/num8.m4a'),
+        num9: new Audio('sounds/num9.m4a'),
+        num10: new Audio('sounds/num10.m4a')
+    };
+
+    // เล่นเสียงตอนจับคู่
+    function playMatchSound(pairId) {
+        const sound = matchSounds[pairId];
+        if (!sound) return;
+        sound.currentTime = 0;
+        sound.play();
+    }
+
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9aeb02e740029102',t:'MTc2NTg1NDg3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
